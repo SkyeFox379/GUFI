@@ -84,28 +84,42 @@ int str_output(void * args, int, char ** data, char **) {
 }
 
 TEST(addqueryfuncs, path) {
-    // original tree was indexed at root
-    const char src[MAXPATH] = "root/level1/level2";
-
     // index was placed into basename
     const char index[MAXPATH] = "/prefix0/prefix1/basename";
+    SNPRINTF(gps[0].gpath, MAXPATH, "%s", index);
 
     sqlite3 * db = nullptr;
     ASSERT_EQ(sqlite3_open(":memory:", &db), SQLITE_OK);
     ASSERT_NE(db, nullptr);
-
-    SNPRINTF(gps[0].gpath, MAXPATH, "%s", index);
     ASSERT_EQ(addqueryfuncs(db, 0, 0, nullptr), 0);
 
-    // use value obtained from summary table
-    char query[MAXSQL] = {};
-    SNPRINTF(query, MAXSQL, "SELECT path('%s')", src);
+    // pass in an empty string into path
+    {
+        char query[MAXSQL] = {};
+        SNPRINTF(query, MAXSQL, "SELECT path('')");
 
-    // the path returned by the query is the index prefix with the original basename
-    char output[MAXPATH] = {};
-    EXPECT_EQ(sqlite3_exec(db, query, str_output, output, nullptr), SQLITE_OK);
+        // the path returned by the query is the index prefix with the original basename
+        char output[MAXPATH] = {};
+        EXPECT_EQ(sqlite3_exec(db, query, str_output, output, nullptr), SQLITE_OK);
 
-    EXPECT_STREQ(output, "/prefix0/prefix1/basename/level1/level2");
+        EXPECT_STREQ(output, "/prefix0/prefix1/basename");
+    }
+
+    // call path with contents
+    {
+        // original tree was indexed at root
+        const char src[MAXPATH] = "root/level1/level2";
+
+        // use value obtained from summary table
+        char query[MAXSQL] = {};
+        SNPRINTF(query, MAXSQL, "SELECT path('%s')", src);
+
+        // the path returned by the query is the index prefix with the original basename
+        char output[MAXPATH] = {};
+        EXPECT_EQ(sqlite3_exec(db, query, str_output, output, nullptr), SQLITE_OK);
+
+        EXPECT_STREQ(output, "/prefix0/prefix1/basename/level1/level2");
+    }
 
     sqlite3_close(db);
 }

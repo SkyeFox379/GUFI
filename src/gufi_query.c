@@ -359,10 +359,12 @@ static int print_callback(void *args, int count, char **data, char **columns) {
     struct CallbackArgs * ca = (struct CallbackArgs *) args;
     const int id = ca->id;
     /* if (gts.outfd[id]) { */
-        size_t * lens = malloc(count * sizeof(size_t));
+        size_t * lens = calloc(count, sizeof(size_t));
         size_t row_len = count + 1; /* one delimiter per column + newline */
         for(int i = 0; i < count; i++) {
-            lens[i] = strlen(data[i]);
+            if (data[i]) {
+                lens[i] = strlen(data[i]);
+            }
             row_len += lens[i];
         }
 
@@ -378,8 +380,10 @@ static int print_callback(void *args, int count, char **data, char **columns) {
             char * buf = ca->output_buffers->buffers[id].buf;
             size_t filled = ca->output_buffers->buffers[id].filled;
             for(int i = 0; i < count; i++) {
-                memcpy(&buf[filled], data[i], lens[i]);
-                filled += lens[i];
+                if (data[i]) {
+                    memcpy(&buf[filled], data[i], lens[i]);
+                    filled += lens[i];
+                }
 
                 buf[filled] = in.delim[0];
                 filled++;
@@ -395,7 +399,9 @@ static int print_callback(void *args, int count, char **data, char **columns) {
             /* if the row does not fit the buffer, output immediately instead of buffering */
             pthread_mutex_lock(&ca->output_buffers->mutex);
             for(int i = 0; i < count; i++) {
-                fwrite(data[i], sizeof(char), lens[i], gts.outfd[id]);
+                if (data[i]) {
+                    fwrite(data[i], sizeof(char), lens[i], gts.outfd[id]);
+                }
                 fwrite(in.delim, sizeof(char), 1, gts.outfd[id]);
             }
             fwrite("\n", sizeof(char), 1, gts.outfd[id]);
