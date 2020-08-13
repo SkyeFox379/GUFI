@@ -1,6 +1,8 @@
 set -e
+#set -x
 
 ROOT="$(realpath ${BASH_SOURCE[0]})"
+ROOT="$(dirname ${ROOT})"
 ROOT="$(dirname ${ROOT})"
 ROOT="$(dirname ${ROOT})"
 ROOT="$(dirname ${ROOT})"
@@ -13,6 +15,16 @@ AVERAGE_SCRIPT="${ROOT}/build/test/regression/averages.py"
 COMPARE_SCRIPT="${ROOT}/build/test/regression/history_compare.py"
 COMMIT_TO_FILE_SCRIPT="${ROOT}/build/test/regression/pristine_file.py"
 
+#check to see if we have made a commit
+changes=$(git -C "${ROOT}" status --porcelain --untracked-files=no 2>&1)
+#echo $changes
+
+if [[ ! -z "${changes}" ]]
+then
+    echo "${ROOT}"
+	echo "You need to commit your changes before running this test"
+	exit 1
+fi
 
 #defaults
 NUM_OF_THREADS=64
@@ -92,9 +104,9 @@ esac
 done
 
 #get commit ID
-COMMIT=$(git --git-dir="${ROOT}"/.git rev-parse --short HEAD)
+COMMIT=$(git -C "${ROOT}" rev-parse --short HEAD)
 #commit we want to compare to
-#TARGET_COMMIT=$(git --git-dir="${ROOT}"/.git rev-parse --short HEAD~"${COMMITS_BACK}")
+#TARGET_COMMIT=$(git -C "${ROOT}" rev-parse --short HEAD~"${COMMITS_BACK}")
 
 
 TMP_FILE=tmp_"$FILE_NAME"
@@ -148,7 +160,6 @@ then
 	exit $rc
 fi
 
-echo "no regression"
 
 #if commit flag was present, then we store this average for our current commit in the pristine file
 if [[ "$commit_to_file" == 1 ]]
